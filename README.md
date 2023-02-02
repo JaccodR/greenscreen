@@ -1,2 +1,2 @@
-# Example
-An example greeter plugin
+# Green screen
+Green screen plugin
