@@ -1,13 +1,13 @@
-package com.example;
+package com.qoltob;
 
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 
-public class ExamplePluginTest
+public class QoltobPluginTest
 {
 	public static void main(String[] args) throws Exception
 	{
-		ExternalPluginManager.loadBuiltin(ExamplePlugin.class);
+		ExternalPluginManager.loadBuiltin(QoltobPlugin.class);
 		RuneLite.main(args);
 	}
 }
