@@ -1,2 +1,1 @@
-# Green screen
-Green screen plugin
+# Stop reading and dont leak
