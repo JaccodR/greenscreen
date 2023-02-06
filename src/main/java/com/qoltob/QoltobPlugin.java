@@ -90,6 +90,7 @@ public class QoltobPlugin extends Plugin
 					//then count ticks a current wave has been active for.
 					//then hardcode time inbetween waves (no stall)
 					//calculate the difference to calculate stalls.
+					//TODO Obviously check that youre in the nylocas room, otherwise dont start & reset...
 				}
 			}
 		}
