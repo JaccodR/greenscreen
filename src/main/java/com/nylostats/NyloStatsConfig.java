@@ -39,4 +39,12 @@ public interface NyloStatsConfig extends Config
     {
         return false;
     }
+
+    @ConfigItem(
+            position = 3,
+            keyName = "bossRotation",
+            name = "Boss rotation",
+            description = "Shows the amount of phases the nylocas boss had."
+    )
+    default boolean showBossRotation() { return false; }
 }

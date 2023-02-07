@@ -38,6 +38,8 @@ public class NyloStatsPlugin extends Plugin
 	private ArrayList<String> stallMessagesCollapsed;
 	private static final Pattern NYLO_COMPLETE = Pattern.compile("Wave 'The Nylocas' \\(.*\\) complete!");
 
+	private int[] bossRotation;
+
 	private static final HashMap<Integer, Integer> waveNaturalStalls;
 	static
 	{
@@ -90,6 +92,8 @@ public class NyloStatsPlugin extends Plugin
 		stalls = 0;
 		stallMessagesAll = new ArrayList<String>();
 		stallMessagesCollapsed = new ArrayList<String>();
+		bossRotation = new int[3];
+		bossRotation[0] = 1;
 	}
 
 	@Override
@@ -189,6 +193,11 @@ public class NyloStatsPlugin extends Plugin
 			{
 				printSplits();
 			}
+			if (config.showBossRotation())
+			{
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: [<col=EF1020>" + bossRotation[0] +
+						"<col=00>] [<col=00FF0A>" + bossRotation[2] + "<col=00>] [<col=2536CA>" + bossRotation[1] + "<col=00>]", "");
+			}
 			if (config.showStalls() != StallDisplays.OFF)
 			{
 				printStalls();
@@ -214,6 +223,31 @@ public class NyloStatsPlugin extends Plugin
 		if (!inTob)
 		{
 			reset();
+		}
+	}
+
+	@Subscribe
+	public void onNpcChanged(NpcChanged npcChanged)
+	{
+		int npcId = npcChanged.getNpc().getId();
+
+		switch(npcId)
+		{
+			case 8355:
+			case 10787:
+			case 10808:
+				bossRotation[0]++;
+				break;
+			case 8356:
+			case 10788:
+			case 10809:
+				bossRotation[1]++;
+				break;
+			case 8357:
+			case 10789:
+			case 10810:
+				bossRotation[2]++;
+				break;
 		}
 	}
 
@@ -257,5 +291,7 @@ public class NyloStatsPlugin extends Plugin
 		stalls = 0;
 		stallMessagesAll = new ArrayList<String>();
 		stallMessagesCollapsed = new ArrayList<String>();
+		bossRotation = new int[3];
+		bossRotation[0] = 1;
 	}
 }
