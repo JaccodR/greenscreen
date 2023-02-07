@@ -1,13 +1,13 @@
-package com.qoltob;
+package com.nylostats;
 
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 
-public class QoltobPluginTest
+public class NyloStatsPluginTest
 {
 	public static void main(String[] args) throws Exception
 	{
-		ExternalPluginManager.loadBuiltin(QoltobPlugin.class);
+		ExternalPluginManager.loadBuiltin(NyloStatsPlugin.class);
 		RuneLite.main(args);
 	}
 }

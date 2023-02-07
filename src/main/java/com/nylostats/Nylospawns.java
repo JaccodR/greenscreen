@@ -1,4 +1,4 @@
-package com.qoltob;
+package com.nylostats;
 
 import lombok.Getter;
 import net.runelite.api.Point;

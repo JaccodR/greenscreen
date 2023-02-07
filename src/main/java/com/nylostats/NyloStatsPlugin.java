@@ -1,36 +1,32 @@
-package com.qoltob;
+package com.nylostats;
 
 import com.google.inject.Provides;
 
-import javax.annotation.concurrent.Immutable;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.NpcDespawned;
-import net.runelite.api.events.NpcSpawned;
-import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.util.Text;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
+import java.util.*;
+import java.util.regex.Pattern;
 
 @Slf4j
 @PluginDescriptor(
-	name = "QOL Tob"
+	name = "Nylo Stats"
 )
-public class QoltobPlugin extends Plugin
+public class NyloStatsPlugin extends Plugin
 {
 	@Inject
 	private Client client;
 
 	@Inject
-	private QoltobConfig config;
+	private NyloStatsConfig config;
 
 	private int currWave;
 	private int stalls;
@@ -39,8 +35,8 @@ public class QoltobPlugin extends Plugin
 	private int rangeSplits;
 	private int mageSplits;
 	private boolean inTob;
-	private boolean bossSpawned;
 	private ArrayList<String> stallMessages;
+	private static final Pattern NYLO_COMPLETE = Pattern.compile("Wave 'The Nylocas' \\(.*\\) complete!");
 
 	private static final HashMap<Integer, Integer> waveNaturalStalls;
 	static
@@ -92,22 +88,25 @@ public class QoltobPlugin extends Plugin
 		mageSplits = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
-		bossSpawned = false;
 		stallMessages = new ArrayList<String>();
-
-		log.info("started!");
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
-		log.info("stopped!");
+		reset();
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
+		if (!inTob)
+		{
+			return;
+		}
+
 		ticksSinceLastWave++;
+
 		for (NPC npc : client.getNpcs())
 		{
 			if (!(Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos")
@@ -126,10 +125,24 @@ public class QoltobPlugin extends Plugin
 					int stallamount = (ticksSinceLastWave - waveNaturalStalls.get(currWave)) / 4;
 					stalls += stallamount;
 
-					for (int i = 0; i < stallamount; i++)
+					if (config.showStalls() == StallDisplays.ALL)
 					{
-						stallMessages.add("Stalled wave: <col=EF1020>" + currWave + "/31");
-					} //TODO potentially total stalls at the end of msg?
+						for (int i = 0; i < stallamount; i++)
+						{
+							stallMessages.add("Stalled wave: <col=EF1020>" + currWave + "/31");
+						}
+					}
+					else if (config.showStalls() == StallDisplays.COLLAPSED)
+					{
+						if (stallamount == 1)
+						{
+							stallMessages.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallamount + "<col=00> time");
+						}
+						else
+						{
+							stallMessages.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallamount + "<col=00> times");
+						}
+					}
 				}
 				currWave++;
 				ticksSinceLastWave = 0;
@@ -149,41 +162,45 @@ public class QoltobPlugin extends Plugin
 			Nylospawns nylospawn = Nylospawns.getLookup().get(point);
 			if (nylospawn == null)
 			{
-				if (npc.getId() == 8342)
-				{ //TODO add hardmode/entry mode ids...
+				if (npc.getId() == 8342 || npc.getId() == 10774 || npc.getId() == 10791)
+				{
 					meleeSplits++;
 				}
-				else if (npc.getId() == 8343)
+				else if (npc.getId() == 8343 || npc.getId() == 10775 || npc.getId() == 10792)
 				{
 					rangeSplits++;
 				}
-				else if(npc.getId() == 8344)
+				else if(npc.getId() == 8344 || npc.getId() == 10776 || npc.getId() == 10793)
 				{
 					mageSplits++;
 				}
 			}
 		}
 	}
+
 	@Subscribe
-	public void onNpcDespawned(NpcDespawned npcDespawned)
+	public void onChatMessage(ChatMessage event)
 	{
-		if (!inTob)
+		if (!inTob || event.getType() != ChatMessageType.GAMEMESSAGE)
 		{
 			return;
 		}
-		NPC npc = npcDespawned.getNpc();
-		if (Objects.equals(npc.getName(), "Nylocas Vasilias"))
+		String msg = Text.removeTags(event.getMessage());
+		if (NYLO_COMPLETE.matcher(msg).find())
 		{
-			if (!bossSpawned)
-			{
-				bossSpawned = true;
-			}
-			else
+			if (config.showSplits())
 			{
 				printSplits();
-				printStalls();
-				reset();
 			}
+			if (config.showStalls() != StallDisplays.OFF)
+			{
+				printStalls();
+			}
+			if (config.showTotalStalls())
+			{
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls, "");
+			}
+			reset();
 		}
 	}
 
@@ -204,9 +221,9 @@ public class QoltobPlugin extends Plugin
 	}
 
 	@Provides
-	QoltobConfig provideConfig(ConfigManager configManager)
+	NyloStatsConfig provideConfig(ConfigManager configManager)
 	{
-		return configManager.getConfig(QoltobConfig.class);
+		return configManager.getConfig(NyloStatsConfig.class);
 	}
 
 	private void printSplits()
@@ -221,7 +238,6 @@ public class QoltobPlugin extends Plugin
 		{
 			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
 		}
-		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls, "");
 	}
 
 	private void reset()
@@ -232,7 +248,6 @@ public class QoltobPlugin extends Plugin
 		mageSplits = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
-		bossSpawned = false;
 		stallMessages = new ArrayList<String>();
 	}
 }
