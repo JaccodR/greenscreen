@@ -13,9 +13,9 @@ enum Nylospawns
     SOUTH_EAST(new Point(32, 9)),
     EAST_SOUTH(new Point(46, 24)),
     EAST_NORTH(new Point(46, 25)),
-    EAST_BIG(new Point(47, 25)),
-    WEST_BIG(new Point(18, 25)),
-    SOUTH_BIG(new Point(32, 10));
+    EAST_BIG(new Point(46, 25)),
+    WEST_BIG(new Point(17, 25)),
+    SOUTH_BIG(new Point(32, 9));
 
 
     @Getter
