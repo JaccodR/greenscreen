@@ -12,7 +12,6 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.util.Text;
-
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -35,7 +34,8 @@ public class NyloStatsPlugin extends Plugin
 	private int rangeSplits;
 	private int mageSplits;
 	private boolean inTob;
-	private ArrayList<String> stallMessages;
+	private ArrayList<String> stallMessagesAll;
+	private ArrayList<String> stallMessagesCollapsed;
 	private static final Pattern NYLO_COMPLETE = Pattern.compile("Wave 'The Nylocas' \\(.*\\) complete!");
 
 	private static final HashMap<Integer, Integer> waveNaturalStalls;
@@ -88,7 +88,8 @@ public class NyloStatsPlugin extends Plugin
 		mageSplits = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
-		stallMessages = new ArrayList<String>();
+		stallMessagesAll = new ArrayList<String>();
+		stallMessagesCollapsed = new ArrayList<String>();
 	}
 
 	@Override
@@ -125,23 +126,18 @@ public class NyloStatsPlugin extends Plugin
 					int stallamount = (ticksSinceLastWave - waveNaturalStalls.get(currWave)) / 4;
 					stalls += stallamount;
 
-					if (config.showStalls() == StallDisplays.ALL)
+					for (int i = 0; i < stallamount; i++)
 					{
-						for (int i = 0; i < stallamount; i++)
-						{
-							stallMessages.add("Stalled wave: <col=EF1020>" + currWave + "/31");
-						}
+						stallMessagesAll.add("Stalled wave: <col=EF1020>" + currWave + "/31");
 					}
-					else if (config.showStalls() == StallDisplays.COLLAPSED)
+
+					if (stallamount == 1)
 					{
-						if (stallamount == 1)
-						{
-							stallMessages.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallamount + "<col=00> time");
-						}
-						else
-						{
-							stallMessages.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallamount + "<col=00> times");
-						}
+						stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallamount + "<col=00> time");
+					}
+					else
+					{
+						stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallamount + "<col=00> times");
 					}
 				}
 				currWave++;
@@ -160,6 +156,7 @@ public class NyloStatsPlugin extends Plugin
 			WorldPoint location = WorldPoint.fromLocalInstance(client, npc.getLocalLocation());
 			Point point = new Point(location.getRegionX(), location.getRegionY());
 			Nylospawns nylospawn = Nylospawns.getLookup().get(point);
+
 			if (nylospawn == null)
 			{
 				if (npc.getId() == 8342 || npc.getId() == 10774 || npc.getId() == 10791)
@@ -234,9 +231,19 @@ public class NyloStatsPlugin extends Plugin
 
 	private void printStalls()
 	{
-		for (String msg : stallMessages)
+		if (config.showStalls() == StallDisplays.ALL)
 		{
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
+			for (String msg : stallMessagesAll)
+			{
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
+			}
+		}
+		else if (config.showStalls() == StallDisplays.COLLAPSED)
+		{
+			for (String msg : stallMessagesCollapsed)
+			{
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
+			}
 		}
 	}
 
@@ -248,6 +255,7 @@ public class NyloStatsPlugin extends Plugin
 		mageSplits = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
-		stallMessages = new ArrayList<String>();
+		stallMessagesAll = new ArrayList<String>();
+		stallMessagesCollapsed = new ArrayList<String>();
 	}
 }
