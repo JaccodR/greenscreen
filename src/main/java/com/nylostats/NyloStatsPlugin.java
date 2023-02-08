@@ -195,7 +195,7 @@ public class NyloStatsPlugin extends Plugin
 			}
 			if (config.showBossRotation())
 			{
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: [<col=EF1020>" + bossRotation[0] +
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: <col=00>[<col=EF1020>" + bossRotation[0] +
 						"<col=00>] [<col=00FF0A>" + bossRotation[2] + "<col=00>] [<col=2536CA>" + bossRotation[1] + "<col=00>]", "");
 			}
 			if (config.showStalls() != StallDisplays.OFF)
@@ -259,7 +259,7 @@ public class NyloStatsPlugin extends Plugin
 
 	private void printSplits()
 	{
-		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total splits: [<col=EF1020>" + meleeSplits +
+		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total splits: <col=00>[<col=EF1020>" + meleeSplits +
 				"<col=00>] [<col=00FF0A>" + rangeSplits + "<col=00>] [<col=2536CA>" + mageSplits + "<col=00>]", "");
 	}
 
