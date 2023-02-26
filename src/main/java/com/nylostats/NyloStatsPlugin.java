@@ -23,22 +23,19 @@ public class NyloStatsPlugin extends Plugin
 {
 	@Inject
 	private Client client;
-
 	@Inject
 	private NyloStatsConfig config;
-
 	private int currWave;
 	private int stalls;
 	private int ticksSinceLastWave;
-	private int meleeSplits;
-	private int rangeSplits;
-	private int mageSplits;
 	private boolean inTob;
+	private int[] splits;
+	private int[] bossRotation;
 	private ArrayList<String> stallMessagesAll;
 	private ArrayList<String> stallMessagesCollapsed;
 	private static final Pattern NYLO_COMPLETE = Pattern.compile("Wave 'The Nylocas' \\(.*\\) complete!");
+	private final int NYLOCAS_REGIONID = 13122;
 
-	private int[] bossRotation;
 
 	private static final HashMap<Integer, Integer> waveNaturalStalls;
 	static
@@ -85,13 +82,11 @@ public class NyloStatsPlugin extends Plugin
 	protected void startUp() throws Exception
 	{
 		currWave = 0;
-		meleeSplits = 0;
-		rangeSplits = 0;
-		mageSplits = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
-		stallMessagesAll = new ArrayList<String>();
-		stallMessagesCollapsed = new ArrayList<String>();
+		stallMessagesAll = new ArrayList<>();
+		stallMessagesCollapsed = new ArrayList<>();
+		splits = new int[3];
 		bossRotation = new int[3];
 		bossRotation[0] = 1;
 	}
@@ -105,7 +100,13 @@ public class NyloStatsPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		if (!inTob)
+		if (!client.isInInstancedRegion() || client.getLocalPlayer() == null)
+		{
+			return;
+		}
+
+		WorldPoint loc = WorldPoint.fromLocalInstance(client, client.getLocalPlayer().getLocalLocation());
+		if (loc == null || loc.getRegionID() != NYLOCAS_REGIONID)
 		{
 			return;
 		}
@@ -127,21 +128,21 @@ public class NyloStatsPlugin extends Plugin
 			{
 				if (currWave > 1 && (ticksSinceLastWave - waveNaturalStalls.get(currWave)) > 0)
 				{
-					int stallamount = (ticksSinceLastWave - waveNaturalStalls.get(currWave)) / 4;
-					stalls += stallamount;
+					int stallAmount = (ticksSinceLastWave - waveNaturalStalls.get(currWave)) / 4;
+					stalls += stallAmount;
 
-					for (int i = 0; i < stallamount; i++)
+					for (int i = 0; i < stallAmount; i++)
 					{
 						stallMessagesAll.add("Stalled wave: <col=EF1020>" + currWave + "/31");
 					}
 
-					if (stallamount == 1)
+					if (stallAmount == 1)
 					{
-						stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallamount + "<col=00> time");
+						stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallAmount + "<col=00> time");
 					}
 					else
 					{
-						stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallamount + "<col=00> times");
+						stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallAmount + "<col=00> times");
 					}
 				}
 				currWave++;
@@ -152,7 +153,8 @@ public class NyloStatsPlugin extends Plugin
 	}
 
 	@Subscribe
-	public void onNpcSpawned(NpcSpawned npcSpawned) {
+	public void onNpcSpawned(NpcSpawned npcSpawned)
+	{
 		NPC npc = npcSpawned.getNpc();
 		if (Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos")
 				|| Objects.equals(npc.getName(), "Nylocas Hagios"))
@@ -165,15 +167,15 @@ public class NyloStatsPlugin extends Plugin
 			{
 				if (npc.getId() == 8342 || npc.getId() == 10774 || npc.getId() == 10791)
 				{
-					meleeSplits++;
+					splits[0]++;
 				}
 				else if (npc.getId() == 8343 || npc.getId() == 10775 || npc.getId() == 10792)
 				{
-					rangeSplits++;
+					splits[1]++;
 				}
 				else if(npc.getId() == 8344 || npc.getId() == 10776 || npc.getId() == 10793)
 				{
-					mageSplits++;
+					splits[2]++;
 				}
 			}
 		}
@@ -182,6 +184,7 @@ public class NyloStatsPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
+		//todo make method to check if player in nylocas region.
 		if (!inTob || event.getType() != ChatMessageType.GAMEMESSAGE)
 		{
 			return;
@@ -191,6 +194,7 @@ public class NyloStatsPlugin extends Plugin
 		{
 			if (config.showSplits())
 			{
+				//todo add tracker for splits precap, postcap.
 				printSplits();
 			}
 			if (config.showBossRotation())
@@ -259,8 +263,8 @@ public class NyloStatsPlugin extends Plugin
 
 	private void printSplits()
 	{
-		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total splits: <col=00>[<col=EF1020>" + meleeSplits +
-				"<col=00>] [<col=00FF0A>" + rangeSplits + "<col=00>] [<col=2536CA>" + mageSplits + "<col=00>]", "");
+		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total splits: <col=00>[<col=EF1020>" + splits[0] +
+				"<col=00>] [<col=00FF0A>" + splits[1] + "<col=00>] [<col=2536CA>" + splits[2] + "<col=00>]", "");
 	}
 
 	private void printStalls()
@@ -284,13 +288,11 @@ public class NyloStatsPlugin extends Plugin
 	private void reset()
 	{
 		currWave = 0;
-		meleeSplits = 0;
-		rangeSplits = 0;
-		mageSplits = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
-		stallMessagesAll = new ArrayList<String>();
-		stallMessagesCollapsed = new ArrayList<String>();
+		stallMessagesAll.clear();
+		stallMessagesCollapsed.clear();
+		splits = new int[3];
 		bossRotation = new int[3];
 		bossRotation[0] = 1;
 	}
