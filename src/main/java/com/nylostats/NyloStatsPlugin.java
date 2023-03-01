@@ -30,7 +30,6 @@ public class NyloStatsPlugin extends Plugin
 	private int currWave;
 	private int stalls;
 	private int ticksSinceLastWave;
-	private boolean inTob;
 	private int[] splits;
 	private int[] preCapSplits;
 	private int[] bossRotation;
@@ -110,46 +109,30 @@ public class NyloStatsPlugin extends Plugin
 		}
 
 		ticksSinceLastWave++;
-		/*
 
-		for (NPC npc : client.getNpcs())
+		if (ticksSinceLastWave % 4 != 0)
 		{
-			if (!(Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos")
-					|| Objects.equals(npc.getName(), "Nylocas Hagios")))
-			{
-				continue;
-			}
-			WorldPoint location = WorldPoint.fromLocalInstance(client, npc.getLocalLocation());
-			Point point = new Point(location.getRegionX(), location.getRegionY());
-			Nylospawns nylospawn = Nylospawns.getLookup().get(point);
-
-			if (nylospawn != null && ticksSinceLastWave > 3)
-			{
-				if (currWave > 1 && (ticksSinceLastWave - waveNaturalStalls.get(currWave)) > 0)
-				{
-					int stallAmount = (ticksSinceLastWave - waveNaturalStalls.get(currWave)) / 4;
-					stalls += stallAmount;
-
-					for (int i = 0; i < stallAmount; i++)
-					{
-						stallMessagesAll.add("Stalled wave: <col=EF1020>" + currWave + "/31");
-					}
-
-					if (stallAmount == 1)
-					{
-						stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallAmount + "<col=00> time");
-					}
-					else
-					{
-						stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31<col=00> - <col=EF1020>" + stallAmount + "<col=00> times");
-					}
-				}
-				currWave++;
-				ticksSinceLastWave = 0;
-				return;
-			}
+			return;
 		}
-		 */
+		if (currWave > 1 && currWave < 31 && ticksSinceLastWave > waveNaturalStalls.get(currWave))
+		{
+			int curCap = 12;
+			if (currWave > 19)
+				curCap = 24;
+
+			int nylosAlive = 0;
+			for (NPC npc: client.getNpcs())
+				nylosAlive++;
+
+			String stallMsg = "Stalled wave: <col=EF1020>" + currWave + "/31</col>";
+
+			if (config.showStalls() == StallDisplays.ALL_ALIVE || config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
+				stallMsg += " - Nylos alive: <col=EF1020>" + nylosAlive + "/" + curCap + "</col>";
+			if (config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
+				stallMsg += " - Total Stalls: <col=EF1020>" + (stallMessagesAll.size() + 1) + "</col>";
+
+			stallMessagesAll.add(stallMsg);
+		}
 	}
 
 	@Subscribe
@@ -180,10 +163,6 @@ public class NyloStatsPlugin extends Plugin
 					{
 						int stallAmount = (ticksSinceLastWave - waveNaturalStalls.get(currWave)) / 4;
 						stalls += stallAmount;
-
-						for (int i = 0; i < stallAmount; i++)
-							stallMessagesAll.add("Stalled wave: <col=EF1020>" + currWave + "/31</col>");
-
 						if (stallAmount == 1)
 							stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31</col> - <col=EF1020>" + stallAmount + "</col> time");
 						else
@@ -209,6 +188,11 @@ public class NyloStatsPlugin extends Plugin
 		String msg = Text.removeTags(event.getMessage());
 		if (NYLO_COMPLETE.matcher(msg).find())
 		{
+			if (currWave != 31)
+			{
+				reset();
+				return;
+			}
 			if (config.showBossRotation())
 			{
 				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: [<col=EF1020>" + bossRotation[0] +
@@ -239,7 +223,7 @@ public class NyloStatsPlugin extends Plugin
 		}
 
 		int tobVar = client.getVarbitValue(Varbits.THEATRE_OF_BLOOD);
-		inTob = tobVar == 2 || tobVar == 3;
+		boolean inTob = tobVar == 2 || tobVar == 3;
 		if (!inTob)
 		{
 			reset();
@@ -291,25 +275,22 @@ public class NyloStatsPlugin extends Plugin
 				"</col>] [<col=00FF0A>" + (splits[1] - preCapSplits[1]) + "</col>] [<col=2536CA>" + (splits[2] - preCapSplits[2]) + "</col>]";
 
 		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msgCap, "");
+
 		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",  "Total splits: [<col=EF1020>" + splits[0] +
 		"</col>] [<col=00FF0A>" + splits[1] + "</col>] [<col=2536CA>" + splits[2] + "</col>]", "");
 	}
 
 	private void printStalls()
 	{
-		if (config.showStalls() == StallDisplays.ALL)
+		if (config.showStalls() == StallDisplays.ALL || config.showStalls() == StallDisplays.ALL_ALIVE || config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
 		{
 			for (String msg : stallMessagesAll)
-			{
 				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
-			}
 		}
 		else if (config.showStalls() == StallDisplays.COLLAPSED)
 		{
 			for (String msg : stallMessagesCollapsed)
-			{
 				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
-			}
 		}
 	}
 

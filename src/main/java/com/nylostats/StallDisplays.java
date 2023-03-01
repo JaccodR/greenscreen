@@ -9,7 +9,9 @@ public enum StallDisplays
 {
     OFF("Off"),
     COLLAPSED("Collapsed"),
-    ALL("All");
+    ALL("All"),
+    ALL_ALIVE("All-Alive"),
+    ALL_ALIVE_TOTAL("All-Alive-Total");
 
     private final String type;
 

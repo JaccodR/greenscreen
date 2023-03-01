@@ -37,7 +37,7 @@ public interface NyloStatsConfig extends Config
     )
     default boolean showSplits()
     {
-        return false;
+        return true;
     }
 
     @ConfigItem(
@@ -46,5 +46,5 @@ public interface NyloStatsConfig extends Config
             name = "Boss rotation",
             description = "Shows the amount of phases the nylocas boss had."
     )
-    default boolean showBossRotation() { return false; }
+    default boolean showBossRotation() { return true; }
 }
