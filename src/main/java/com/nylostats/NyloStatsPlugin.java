@@ -193,11 +193,6 @@ public class NyloStatsPlugin extends Plugin
 				reset();
 				return;
 			}
-			if (config.showBossRotation())
-			{
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: [<col=EF1020>" + bossRotation[0] +
-						"</col>] [<col=00FF0A>" + bossRotation[2] + "</col>] [<col=2536CA>" + bossRotation[1] + "</col>]", "");
-			}
 			if (config.showStalls() != StallDisplays.OFF)
 			{
 				printStalls();
@@ -209,6 +204,11 @@ public class NyloStatsPlugin extends Plugin
 			if (config.showSplits())
 			{
 				printSplits();
+			}
+			if (config.showBossRotation())
+			{
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: [<col=EF1020>" + bossRotation[0] +
+						"</col>] [<col=00FF0A>" + bossRotation[2] + "</col>] [<col=2536CA>" + bossRotation[1] + "</col>]", "");
 			}
 			reset();
 		}
