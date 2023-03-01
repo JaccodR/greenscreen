@@ -119,7 +119,7 @@ public class NyloStatsPlugin extends Plugin
 					curCap = 24;
 
 				if (isHmt)
-					curCap += 6;
+					curCap += 0; //TODO figure out and fix this shit for hmt
 
 				int aliveNylos = 0;
 				for (NPC npc : client.getNpcs())
@@ -131,7 +131,7 @@ public class NyloStatsPlugin extends Plugin
 					}
 					if (Objects.equals(npc.getName(), "Nylocas Prinkipas"))
 					{
-						aliveNylos += 6;
+						aliveNylos += 3;
 					}
 				}
 
@@ -215,8 +215,7 @@ public class NyloStatsPlugin extends Plugin
 			}
 			if (config.showStalls() != StallDisplays.OFF)
 			{
-				if (!isHmt)
-					printStalls();
+				printStalls();
 			}
 			if (config.showTotalStalls())
 			{
