@@ -215,7 +215,8 @@ public class NyloStatsPlugin extends Plugin
 			}
 			if (config.showStalls() != StallDisplays.OFF)
 			{
-				printStalls();
+				if (!isHmt)
+					printStalls();
 			}
 			if (config.showTotalStalls())
 			{
