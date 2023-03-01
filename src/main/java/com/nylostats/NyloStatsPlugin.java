@@ -34,6 +34,7 @@ public class NyloStatsPlugin extends Plugin
 	private int[] preCapSplits;
 	private int[] bossRotation;
 	private boolean isHmt;
+	private int currCap;
 	private ArrayList<String> stallMessagesAll;
 	private ArrayList<String> stallMessagesCollapsed;
 	private static final Pattern NYLO_COMPLETE = Pattern.compile("Wave 'The Nylocas' \\(.*\\) complete!");
@@ -87,6 +88,7 @@ public class NyloStatsPlugin extends Plugin
 		currWave = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
+		currCap = 12;
 		isHmt = false;
 		stallMessagesAll = new ArrayList<>();
 		stallMessagesCollapsed = new ArrayList<>();
@@ -106,60 +108,37 @@ public class NyloStatsPlugin extends Plugin
 	public void onGameTick(GameTick event)
 	{
 		if (!inNyloRegion())
-		{
 			return;
-		}
 
 		if (ticksSinceLastWave % 4 == 0)
 		{
 			if (currWave > 1 && currWave < 31 && ticksSinceLastWave >= waveNaturalStalls.get(currWave))
 			{
-				int curCap = 12;
 				if (isHmt)
 				{
-					if (currWave == 10)
-					{
-						int hmtWaveTen = waveNaturalStalls.get(currWave) + 8; // Hmt wave 10 has 2 natural stalls
-						if (!(ticksSinceLastWave >= hmtWaveTen))
-						{
-							ticksSinceLastWave++;
-							return;
-						}
-					}
-					else if (currWave == 30)
-					{
-						int hmtWaveThirty = waveNaturalStalls.get(currWave) + 12; 	// Hmt wave 30 has 3 natural stalls
-						if (!(ticksSinceLastWave >= hmtWaveThirty))
-						{
-							ticksSinceLastWave++;
-							return;
-						}
-					}
-					curCap = 15; // hmt precap is 15
+					if (hmtWavesCheck() == 1)
+						return;
 				}
+
 				if (currWave > 19)
-					curCap = 24; // regular and hmt postcap is 24
+					currCap = 24; // regular and hmt postcap is 24
 
 				int aliveNylos = 0;
 				for (NPC npc : client.getNpcs())
 				{
-					if (Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos")
-							|| Objects.equals(npc.getName(), "Nylocas Hagios"))
-					{
+					if (Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos") || Objects.equals(npc.getName(), "Nylocas Hagios"))
 						aliveNylos++;
-					}
 					if (Objects.equals(npc.getName(), "Nylocas Prinkipas"))
-					{
 						aliveNylos += 3; // nylo prince adds 3 to the cap
-					}
 				}
 
-				if (aliveNylos >= curCap)
+				if (aliveNylos >= currCap)
 				{
 					String stallMsg = "Stalled wave: <col=EF1020>" + currWave + "/31</col>";
 
 					if (config.showStalls() == StallDisplays.ALL_ALIVE || config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
-						stallMsg += " - Nylos alive: <col=EF1020>" + aliveNylos + "/" + curCap + "</col>";
+						stallMsg += " - Nylos alive: <col=EF1020>" + aliveNylos + "/" + currCap + "</col>";
+
 					if (config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
 						stallMsg += " - Total Stalls: <col=EF1020>" + (stallMessagesAll.size() + 1) + "</col>";
 
@@ -192,9 +171,8 @@ public class NyloStatsPlugin extends Plugin
 					splits[2]++;
 
 				if (npc.getId() == 10791 || npc.getId() == 10792 || npc.getId() == 17093)
-				{
 					isHmt = true;
-				}
+
 			}
 			else
 			{
@@ -336,9 +314,6 @@ public class NyloStatsPlugin extends Plugin
 		{
 			for (String msg : stallMessagesAll)
 				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
-
-			for (String msg : stallMessagesCollapsed)
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
 		}
 		else if (config.showStalls() == StallDisplays.COLLAPSED)
 		{
@@ -347,12 +322,37 @@ public class NyloStatsPlugin extends Plugin
 		}
 	}
 
+	private int hmtWavesCheck()
+	{
+		if (currWave == 10)
+		{
+			int hmtWaveTen = waveNaturalStalls.get(currWave) + 8; // Hmt wave 10 has 2 additional natural stalls
+			if (!(ticksSinceLastWave >= hmtWaveTen))
+			{
+				ticksSinceLastWave++;
+				return 1;
+			}
+		}
+		else if (currWave == 30)
+		{
+			int hmtWaveThirty = waveNaturalStalls.get(currWave) + 12; 	// Hmt wave 30 has 3 additional natural stalls
+			if (!(ticksSinceLastWave >= hmtWaveThirty))
+			{
+				ticksSinceLastWave++;
+				return 1;
+			}
+		}
+		currCap = 15; // hmt precap is 15
+		return 0;
+	}
+
 	private void reset()
 	{
 		currWave = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
 		isHmt = false;
+		currCap = 12;
 		stallMessagesAll.clear();
 		stallMessagesCollapsed.clear();
 		splits = new int[3];
