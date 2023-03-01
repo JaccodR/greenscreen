@@ -30,10 +30,10 @@ public class NyloStatsPlugin extends Plugin
 	private int currWave;
 	private int stalls;
 	private int ticksSinceLastWave;
-	private int aliveNylos;
 	private int[] splits;
 	private int[] preCapSplits;
 	private int[] bossRotation;
+	private boolean isHmt;
 	private ArrayList<String> stallMessagesAll;
 	private ArrayList<String> stallMessagesCollapsed;
 	private static final Pattern NYLO_COMPLETE = Pattern.compile("Wave 'The Nylocas' \\(.*\\) complete!");
@@ -87,7 +87,7 @@ public class NyloStatsPlugin extends Plugin
 		currWave = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
-		aliveNylos = 0;
+		isHmt = false;
 		stallMessagesAll = new ArrayList<>();
 		stallMessagesCollapsed = new ArrayList<>();
 		splits = new int[3];
@@ -110,30 +110,45 @@ public class NyloStatsPlugin extends Plugin
 			return;
 		}
 
-		ticksSinceLastWave++;
-
-		if (ticksSinceLastWave % 4 != 0)
+		if (ticksSinceLastWave % 4 == 0)
 		{
-			return;
-		}
-		if (currWave > 1 && currWave < 31 && ticksSinceLastWave == waveNaturalStalls.get(currWave))
-		{
-			int curCap = 12;
-			if (currWave > 19)
-				curCap = 24;
-
-			if (aliveNylos >= curCap)
+			if (currWave > 1 && currWave < 31 && ticksSinceLastWave >= waveNaturalStalls.get(currWave))
 			{
-				String stallMsg = "Stalled wave: <col=EF1020>" + currWave + "/31</col>";
+				int curCap = 12;
+				if (currWave > 19)
+					curCap = 24;
 
-				if (config.showStalls() == StallDisplays.ALL_ALIVE || config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
-					stallMsg += " - Nylos alive: <col=EF1020>" + aliveNylos + "/" + curCap + "</col>";
-				if (config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
-					stallMsg += " - Total Stalls: <col=EF1020>" + (stallMessagesAll.size() + 1) + "</col>";
+				if (isHmt)
+					curCap += 6;
 
-				stallMessagesAll.add(stallMsg);
+				int aliveNylos = 0;
+				for (NPC npc : client.getNpcs())
+				{
+					if (Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos")
+							|| Objects.equals(npc.getName(), "Nylocas Hagios"))
+					{
+						aliveNylos++;
+					}
+					if (Objects.equals(npc.getName(), "Nylocas Prinkipas"))
+					{
+						aliveNylos += 6;
+					}
+				}
+
+				if (aliveNylos >= curCap)
+				{
+					String stallMsg = "Stalled wave: <col=EF1020>" + currWave + "/31</col>";
+
+					if (config.showStalls() == StallDisplays.ALL_ALIVE || config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
+						stallMsg += " - Nylos alive: <col=EF1020>" + aliveNylos + "/" + curCap + "</col>";
+					if (config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
+						stallMsg += " - Total Stalls: <col=EF1020>" + (stallMessagesAll.size() + 1) + "</col>";
+
+					stallMessagesAll.add(stallMsg);
+				}
 			}
 		}
+		ticksSinceLastWave++;
 	}
 
 	@Subscribe
@@ -147,7 +162,6 @@ public class NyloStatsPlugin extends Plugin
 			Point point = new Point(location.getRegionX(), location.getRegionY());
 			Nylospawns nylospawn = Nylospawns.getLookup().get(point);
 
-			aliveNylos++;
 
 			if (nylospawn == null)
 			{
@@ -157,6 +171,9 @@ public class NyloStatsPlugin extends Plugin
 					splits[1]++;
 				else if(npc.getId() == 8344 || npc.getId() == 10776 || npc.getId() == 10793)
 					splits[2]++;
+
+				if (npc.getId() == 10791 || npc.getId() == 10792 || npc.getId() == 17093)
+					isHmt = true;
 			}
 			else
 			{
@@ -178,17 +195,6 @@ public class NyloStatsPlugin extends Plugin
 					ticksSinceLastWave = 0;
 				}
 			}
-		}
-	}
-
-	@Subscribe
-	public void onNpcDespawned(NpcDespawned npcDespawned)
-	{
-		NPC npc = npcDespawned.getNpc();
-		if (Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos")
-				|| Objects.equals(npc.getName(), "Nylocas Hagios"))
-		{
-			aliveNylos--;
 		}
 	}
 
@@ -313,7 +319,7 @@ public class NyloStatsPlugin extends Plugin
 		currWave = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
-		aliveNylos = 0;
+		isHmt = false;
 		stallMessagesAll.clear();
 		stallMessagesCollapsed.clear();
 		splits = new int[3];
