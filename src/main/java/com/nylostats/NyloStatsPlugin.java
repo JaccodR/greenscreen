@@ -30,6 +30,7 @@ public class NyloStatsPlugin extends Plugin
 	private int currWave;
 	private int stalls;
 	private int ticksSinceLastWave;
+	private int aliveNylos;
 	private int[] splits;
 	private int[] preCapSplits;
 	private int[] bossRotation;
@@ -86,6 +87,7 @@ public class NyloStatsPlugin extends Plugin
 		currWave = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
+		aliveNylos = 0;
 		stallMessagesAll = new ArrayList<>();
 		stallMessagesCollapsed = new ArrayList<>();
 		splits = new int[3];
@@ -114,24 +116,23 @@ public class NyloStatsPlugin extends Plugin
 		{
 			return;
 		}
-		if (currWave > 1 && currWave < 31 && ticksSinceLastWave > waveNaturalStalls.get(currWave))
+		if (currWave > 1 && currWave < 31 && ticksSinceLastWave == waveNaturalStalls.get(currWave))
 		{
 			int curCap = 12;
 			if (currWave > 19)
 				curCap = 24;
 
-			int nylosAlive = 0;
-			for (NPC npc: client.getNpcs())
-				nylosAlive++;
+			if (aliveNylos >= curCap)
+			{
+				String stallMsg = "Stalled wave: <col=EF1020>" + currWave + "/31</col>";
 
-			String stallMsg = "Stalled wave: <col=EF1020>" + currWave + "/31</col>";
+				if (config.showStalls() == StallDisplays.ALL_ALIVE || config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
+					stallMsg += " - Nylos alive: <col=EF1020>" + aliveNylos + "/" + curCap + "</col>";
+				if (config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
+					stallMsg += " - Total Stalls: <col=EF1020>" + (stallMessagesAll.size() + 1) + "</col>";
 
-			if (config.showStalls() == StallDisplays.ALL_ALIVE || config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
-				stallMsg += " - Nylos alive: <col=EF1020>" + nylosAlive + "/" + curCap + "</col>";
-			if (config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
-				stallMsg += " - Total Stalls: <col=EF1020>" + (stallMessagesAll.size() + 1) + "</col>";
-
-			stallMessagesAll.add(stallMsg);
+				stallMessagesAll.add(stallMsg);
+			}
 		}
 	}
 
@@ -145,6 +146,8 @@ public class NyloStatsPlugin extends Plugin
 			WorldPoint location = WorldPoint.fromLocalInstance(client, npc.getLocalLocation());
 			Point point = new Point(location.getRegionX(), location.getRegionY());
 			Nylospawns nylospawn = Nylospawns.getLookup().get(point);
+
+			aliveNylos++;
 
 			if (nylospawn == null)
 			{
@@ -175,6 +178,17 @@ public class NyloStatsPlugin extends Plugin
 					ticksSinceLastWave = 0;
 				}
 			}
+		}
+	}
+
+	@Subscribe
+	public void onNpcDespawned(NpcDespawned npcDespawned)
+	{
+		NPC npc = npcDespawned.getNpc();
+		if (Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos")
+				|| Objects.equals(npc.getName(), "Nylocas Hagios"))
+		{
+			aliveNylos--;
 		}
 	}
 
@@ -299,6 +313,7 @@ public class NyloStatsPlugin extends Plugin
 		currWave = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
+		aliveNylos = 0;
 		stallMessagesAll.clear();
 		stallMessagesCollapsed.clear();
 		splits = new int[3];
