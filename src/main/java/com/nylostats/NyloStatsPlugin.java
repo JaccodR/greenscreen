@@ -12,6 +12,8 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.util.Text;
+import org.apache.commons.lang3.ArrayUtils;
+
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -30,6 +32,7 @@ public class NyloStatsPlugin extends Plugin
 	private int ticksSinceLastWave;
 	private boolean inTob;
 	private int[] splits;
+	private int[] preCapSplits;
 	private int[] bossRotation;
 	private ArrayList<String> stallMessagesAll;
 	private ArrayList<String> stallMessagesCollapsed;
@@ -87,6 +90,7 @@ public class NyloStatsPlugin extends Plugin
 		stallMessagesAll = new ArrayList<>();
 		stallMessagesCollapsed = new ArrayList<>();
 		splits = new int[3];
+		preCapSplits = new int[3];
 		bossRotation = new int[3];
 		bossRotation[0] = 1;
 	}
@@ -100,18 +104,13 @@ public class NyloStatsPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		if (!client.isInInstancedRegion() || client.getLocalPlayer() == null)
-		{
-			return;
-		}
-
-		WorldPoint loc = WorldPoint.fromLocalInstance(client, client.getLocalPlayer().getLocalLocation());
-		if (loc == null || loc.getRegionID() != NYLOCAS_REGIONID)
+		if (!inNyloRegion())
 		{
 			return;
 		}
 
 		ticksSinceLastWave++;
+		/*
 
 		for (NPC npc : client.getNpcs())
 		{
@@ -150,6 +149,7 @@ public class NyloStatsPlugin extends Plugin
 				return;
 			}
 		}
+		 */
 	}
 
 	@Subscribe
@@ -166,16 +166,34 @@ public class NyloStatsPlugin extends Plugin
 			if (nylospawn == null)
 			{
 				if (npc.getId() == 8342 || npc.getId() == 10774 || npc.getId() == 10791)
-				{
 					splits[0]++;
-				}
 				else if (npc.getId() == 8343 || npc.getId() == 10775 || npc.getId() == 10792)
-				{
 					splits[1]++;
-				}
 				else if(npc.getId() == 8344 || npc.getId() == 10776 || npc.getId() == 10793)
-				{
 					splits[2]++;
+			}
+			else
+			{
+				if (ticksSinceLastWave > 3)
+				{
+					if (currWave > 1 && (ticksSinceLastWave - waveNaturalStalls.get(currWave)) > 0)
+					{
+						int stallAmount = (ticksSinceLastWave - waveNaturalStalls.get(currWave)) / 4;
+						stalls += stallAmount;
+
+						for (int i = 0; i < stallAmount; i++)
+							stallMessagesAll.add("Stalled wave: <col=EF1020>" + currWave + "/31</col>");
+
+						if (stallAmount == 1)
+							stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31</col> - <col=EF1020>" + stallAmount + "</col> time");
+						else
+							stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31</col> - <col=EF1020>" + stallAmount + "</col> times");
+					}
+					currWave++;
+					if (currWave == 20)
+						preCapSplits = splits.clone();
+
+					ticksSinceLastWave = 0;
 				}
 			}
 		}
@@ -184,23 +202,17 @@ public class NyloStatsPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		//todo make method to check if player in nylocas region.
-		if (!inTob || event.getType() != ChatMessageType.GAMEMESSAGE)
+		if (!inNyloRegion() || event.getType() != ChatMessageType.GAMEMESSAGE)
 		{
 			return;
 		}
 		String msg = Text.removeTags(event.getMessage());
 		if (NYLO_COMPLETE.matcher(msg).find())
 		{
-			if (config.showSplits())
-			{
-				//todo add tracker for splits precap, postcap.
-				printSplits();
-			}
 			if (config.showBossRotation())
 			{
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: <col=00>[<col=EF1020>" + bossRotation[0] +
-						"<col=00>] [<col=00FF0A>" + bossRotation[2] + "<col=00>] [<col=2536CA>" + bossRotation[1] + "<col=00>]", "");
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: [<col=EF1020>" + bossRotation[0] +
+						"</col>] [<col=00FF0A>" + bossRotation[2] + "</col>] [<col=2536CA>" + bossRotation[1] + "</col>]", "");
 			}
 			if (config.showStalls() != StallDisplays.OFF)
 			{
@@ -208,7 +220,11 @@ public class NyloStatsPlugin extends Plugin
 			}
 			if (config.showTotalStalls())
 			{
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls, "");
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
+			}
+			if (config.showSplits())
+			{
+				printSplits();
 			}
 			reset();
 		}
@@ -255,6 +271,11 @@ public class NyloStatsPlugin extends Plugin
 		}
 	}
 
+	private boolean inNyloRegion()
+	{
+		return ArrayUtils.contains(client.getMapRegions(), NYLOCAS_REGIONID);
+	}
+
 	@Provides
 	NyloStatsConfig provideConfig(ConfigManager configManager)
 	{
@@ -263,8 +284,15 @@ public class NyloStatsPlugin extends Plugin
 
 	private void printSplits()
 	{
-		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total splits: <col=00>[<col=EF1020>" + splits[0] +
-				"<col=00>] [<col=00FF0A>" + splits[1] + "<col=00>] [<col=2536CA>" + splits[2] + "<col=00>]", "");
+
+		String msgCap = "Pre cap splits: [<col=EF1020>" + preCapSplits[0] +
+				"</col>] [<col=00FF0A>" + preCapSplits[1] + "</col>] [<col=2536CA>" + preCapSplits[2] + "</col>]";
+		msgCap +=" Post cap splits: [<col=EF1020>" + (splits[0] - preCapSplits[0]) +
+				"</col>] [<col=00FF0A>" + (splits[1] - preCapSplits[1]) + "</col>] [<col=2536CA>" + (splits[2] - preCapSplits[2]) + "</col>]";
+
+		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msgCap, "");
+		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",  "Total splits: [<col=EF1020>" + splits[0] +
+		"</col>] [<col=00FF0A>" + splits[1] + "</col>] [<col=2536CA>" + splits[2] + "</col>]", "");
 	}
 
 	private void printStalls()
@@ -293,6 +321,7 @@ public class NyloStatsPlugin extends Plugin
 		stallMessagesAll.clear();
 		stallMessagesCollapsed.clear();
 		splits = new int[3];
+		preCapSplits = new int[3];
 		bossRotation = new int[3];
 		bossRotation[0] = 1;
 	}
