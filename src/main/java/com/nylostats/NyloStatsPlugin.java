@@ -115,11 +115,30 @@ public class NyloStatsPlugin extends Plugin
 			if (currWave > 1 && currWave < 31 && ticksSinceLastWave >= waveNaturalStalls.get(currWave))
 			{
 				int curCap = 12;
-				if (currWave > 19)
-					curCap = 24;
-
 				if (isHmt)
-					curCap += 0; //TODO figure out and fix this shit for hmt
+				{
+					if (currWave == 10)
+					{
+						int hmtWaveTen = waveNaturalStalls.get(currWave) + 8; // Hmt wave 10 has 2 natural stalls
+						if (!(ticksSinceLastWave >= hmtWaveTen))
+						{
+							ticksSinceLastWave++;
+							return;
+						}
+					}
+					else if (currWave == 30)
+					{
+						int hmtWaveThirty = waveNaturalStalls.get(currWave) + 12; 	// Hmt wave 30 has 3 natural stalls
+						if (!(ticksSinceLastWave >= hmtWaveThirty))
+						{
+							ticksSinceLastWave++;
+							return;
+						}
+					}
+					curCap = 15; // hmt precap is 15
+				}
+				if (currWave > 19)
+					curCap = 24; // regular and hmt postcap is 24
 
 				int aliveNylos = 0;
 				for (NPC npc : client.getNpcs())
@@ -131,7 +150,7 @@ public class NyloStatsPlugin extends Plugin
 					}
 					if (Objects.equals(npc.getName(), "Nylocas Prinkipas"))
 					{
-						aliveNylos += 3;
+						aliveNylos += 3; // nylo prince adds 3 to the cap
 					}
 				}
 
@@ -173,7 +192,9 @@ public class NyloStatsPlugin extends Plugin
 					splits[2]++;
 
 				if (npc.getId() == 10791 || npc.getId() == 10792 || npc.getId() == 17093)
+				{
 					isHmt = true;
+				}
 			}
 			else
 			{
@@ -182,10 +203,16 @@ public class NyloStatsPlugin extends Plugin
 					if (currWave > 1 && (ticksSinceLastWave - waveNaturalStalls.get(currWave)) > 0)
 					{
 						int stallAmount = (ticksSinceLastWave - waveNaturalStalls.get(currWave)) / 4;
+
+						if (isHmt && currWave == 10)
+							stallAmount -= 2;
+						else if (isHmt && currWave == 30)
+							stallAmount -= 3;
+
 						stalls += stallAmount;
 						if (stallAmount == 1)
 							stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31</col> - <col=EF1020>" + stallAmount + "</col> time");
-						else
+						else if (stallAmount > 1)
 							stallMessagesCollapsed.add("Stalled wave: <col=EF1020>" + currWave + "/31</col> - <col=EF1020>" + stallAmount + "</col> times");
 					}
 					currWave++;
@@ -219,7 +246,10 @@ public class NyloStatsPlugin extends Plugin
 			}
 			if (config.showTotalStalls())
 			{
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
+				if (isHmt)
+					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
+				else
+					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
 			}
 			if (config.showSplits())
 			{
@@ -305,6 +335,9 @@ public class NyloStatsPlugin extends Plugin
 		if (config.showStalls() == StallDisplays.ALL || config.showStalls() == StallDisplays.ALL_ALIVE || config.showStalls() == StallDisplays.ALL_ALIVE_TOTAL)
 		{
 			for (String msg : stallMessagesAll)
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
+
+			for (String msg : stallMessagesCollapsed)
 				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, "");
 		}
 		else if (config.showStalls() == StallDisplays.COLLAPSED)
