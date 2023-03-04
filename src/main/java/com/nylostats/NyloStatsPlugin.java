@@ -207,9 +207,8 @@ public class NyloStatsPlugin extends Plugin
 	public void onChatMessage(ChatMessage event)
 	{
 		if (!inNyloRegion() || event.getType() != ChatMessageType.GAMEMESSAGE)
-		{
 			return;
-		}
+
 		String msg = Text.removeTags(event.getMessage());
 		if (NYLO_COMPLETE.matcher(msg).find())
 		{
@@ -224,10 +223,7 @@ public class NyloStatsPlugin extends Plugin
 			}
 			if (config.showTotalStalls())
 			{
-				if (isHmt)
-					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
-				else
-					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
 			}
 			if (config.showSplits())
 			{
@@ -246,16 +242,12 @@ public class NyloStatsPlugin extends Plugin
 	public void onVarbitChanged(VarbitChanged event)
 	{
 		if (client.getLocalPlayer() == null)
-		{
 			return;
-		}
 
 		int tobVar = client.getVarbitValue(Varbits.THEATRE_OF_BLOOD);
 		boolean inTob = tobVar == 2 || tobVar == 3;
 		if (!inTob)
-		{
 			reset();
-		}
 	}
 
 	@Subscribe
