@@ -1,10 +1,7 @@
 package com.nylostats;
 
 import com.nylostats.data.NyloWave;
-import com.nylostats.panels.NyloWaveListContainer;
-import com.nylostats.panels.NyloWaveListPanel;
-import com.nylostats.panels.NyloWavePanel;
-import com.nylostats.panels.TitlePanel;
+import com.nylostats.panels.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import net.runelite.client.ui.ColorScheme;
@@ -12,7 +9,6 @@ import net.runelite.client.ui.PluginPanel;
 
 import javax.inject.Inject;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 @Getter(AccessLevel.PACKAGE)
@@ -43,10 +39,23 @@ public class NyloStatsPanel extends PluginPanel
         SwingUtilities.invokeLater(() ->
         {
             nyloWavePanel = new NyloWavePanel(config, wave);
+            PlotPanel plotPanel = new PlotPanel(wave.getNylosAlive());
             waveListPanel.add(nyloWavePanel, 0);
+            //waveListPanel.add(plotPanel, 1);
 
             updateUI();
         });
+    }
+
+    void addPlot(NyloWave wave)
+    {
+      SwingUtilities.invokeLater(() ->
+      {
+          PlotPanel plotPanel = new PlotPanel(wave.getNylosAlive());
+          add(plotPanel, 0);
+
+          updateUI();;
+      });
     }
 
     public void clearNyloWaves()

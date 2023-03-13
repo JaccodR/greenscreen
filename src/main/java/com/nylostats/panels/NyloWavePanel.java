@@ -1,5 +1,6 @@
 package com.nylostats.panels;
 
+import com.nylostats.NyloPlotHandler;
 import com.nylostats.NyloStatsConfig;
 import com.nylostats.data.NyloWave;
 import lombok.Getter;
@@ -137,6 +138,7 @@ public class NyloWavePanel extends JPanel
         idleTicks.setForeground(Color.WHITE);
         idleTicksLine.add(idleTicks, BorderLayout.WEST);
 
+
         textPanel.add(durationLine);
         textPanel.add(durationBossLine);
         textPanel.add(splitsLine);
@@ -144,18 +146,14 @@ public class NyloWavePanel extends JPanel
         textPanel.add(damageDealtLine);
         textPanel.add(idleTicksLine);
 
-        JPanel imagePanel = new JPanel();
-        imagePanel.setLayout(new BoxLayout(imagePanel, BoxLayout.Y_AXIS));
-        imagePanel.setBackground(null);
-
-        imageLabel = new WaveImage();
-        imagePanel.add(imageLabel);
-
+        PlotPanel plotPanel = new PlotPanel(wave.getNylosAlive());
+        plotPanel.setLayout(new BoxLayout(plotPanel, BoxLayout.Y_AXIS));
+        plotPanel.setBackground(null);
 
 
         wavesPanelTop.add(nyloDateLine);
         wavesPanelBottom.add(textPanel);
-        wavesPanelBottom.add(imagePanel);
+        wavesPanelBottom.add(plotPanel);
 
         wavesPanel.add(wavesPanelTop, BorderLayout.NORTH);
         wavesPanel.add(wavesPanelBottom, BorderLayout.SOUTH);
