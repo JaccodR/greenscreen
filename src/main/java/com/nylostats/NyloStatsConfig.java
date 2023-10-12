@@ -42,14 +42,6 @@ public interface NyloStatsConfig extends Config
 
     @ConfigItem(
             position = 3,
-            keyName = "smallSplitsCap",
-            name = "Small splits post/pre cap",
-            description = "Shows the amount of nylocas that spawned pre/post cap (Only works if small splits is enabled)"
-    )
-    default boolean showSplitsCap() { return false; }
-
-    @ConfigItem(
-            position = 3,
             keyName = "bossRotation",
             name = "Boss rotation",
             description = "Shows the amount of phases the nylocas boss had."
