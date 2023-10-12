@@ -5,7 +5,7 @@ import net.runelite.api.Point;
 
 import java.util.HashMap;
 
-enum NyloSpawn
+enum Nylospawns
 {
     WEST_NORTH(new Point(17, 25)),
     WEST_SOUTH(new Point(17, 24)),
@@ -22,18 +22,18 @@ enum NyloSpawn
     private Point point;
 
     @Getter
-    private static final HashMap<Point, NyloSpawn> lookup;
+    private static final HashMap<Point, Nylospawns> lookup;
     static
     {
         lookup = new HashMap<>();
-        for (NyloSpawn spawn : NyloSpawn.values())
+        for (Nylospawns spawn : Nylospawns.values())
         {
             lookup.put(spawn.getPoint(), spawn);
         }
     }
 
 
-    NyloSpawn(Point point)
+    Nylospawns(Point point)
     {
         this.point = point;
     }
