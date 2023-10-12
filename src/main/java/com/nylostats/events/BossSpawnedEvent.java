@@ -1,15 +1,7 @@
 package com.nylostats.events;
 
-import lombok.Getter;
-import net.runelite.api.NPC;
+import lombok.AllArgsConstructor;
 
-public class BossSpawnedEvent
-{
-    @Getter
-    private NPC npc;
-
-    public BossSpawnedEvent(NPC npc)
-    {
-        this.npc = npc;
-    }
+@AllArgsConstructor
+public class BossSpawnedEvent {
 }

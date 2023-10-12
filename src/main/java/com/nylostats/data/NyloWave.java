@@ -4,8 +4,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-
 @Getter
 @Setter
 public class NyloWave
@@ -18,10 +16,8 @@ public class NyloWave
     private int damageDealt;
     private int damageTaken;
     private int idleTicks;
-    private ArrayList<Integer> nylosAlive;
 
-    public NyloWave(int durationWaves, int durationBoss, int[] splits,int[] bossRota, int damageDealt,
-                    int damageTaken, int idleTicks, ArrayList<Integer> nylosAlive)
+    public NyloWave(int durationWaves, int durationBoss, int[] splits,int[] bossRota, int damageDealt, int damageTaken, int idleTicks)
     {
         this.durationWaves = durationWaves;
         this.durationBoss = durationBoss;
@@ -30,6 +26,5 @@ public class NyloWave
         this.damageDealt = damageDealt;
         this.damageTaken = damageTaken;
         this.idleTicks = idleTicks;
-        this.nylosAlive = nylosAlive;
     }
 }

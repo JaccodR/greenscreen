@@ -27,7 +27,6 @@ import net.runelite.client.util.Text;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.awt.image.BufferedImage;
-import java.lang.reflect.Array;
 import java.nio.Buffer;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -46,8 +45,6 @@ public class NyloStatsPlugin extends Plugin
 	private ClientToolbar clientToolbar;
 	@Inject
 	private IdleTicksHandler idleTicksHandler;
-	@Inject
-	private NyloPlotHandler nyloPlotHandler;
 	@Inject
 	private EventBus eventBus;
 	@Getter(AccessLevel.PACKAGE)
@@ -144,7 +141,6 @@ public class NyloStatsPlugin extends Plugin
 		roomTime = -1;
 
 		eventBus.register(idleTicksHandler);
-		eventBus.register(nyloPlotHandler);
 	}
 
 	@Override
@@ -153,44 +149,13 @@ public class NyloStatsPlugin extends Plugin
 		clientToolbar.removeNavigation(navButton);
 		reset();
 		eventBus.unregister(idleTicksHandler);
-		eventBus.unregister(nyloPlotHandler);
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		/*
-		final ArrayList<Integer> nylosAlive = new ArrayList<>();
-		nylosAlive.add(0);
-		nylosAlive.add(4);
-		nylosAlive.add(6);
-		nylosAlive.add(15);
-		nylosAlive.add(24);
-		nylosAlive.add(22);
-		nylosAlive.add(20);
-		nylosAlive.add(18);
-		nylosAlive.add(22);
-		nylosAlive.add(27);
-		nylosAlive.add(27);
-		nylosAlive.add(24);
-		nylosAlive.add(27);
-		nylosAlive.add(20);
-		nylosAlive.add(18);
-		nylosAlive.add(15);
-		nylosAlive.add(20);
-		nylosAlive.add(24);
-		NyloWave wave = new NyloWave(300, 100, splits, bossRotation, dmgDealt, dmgTaken, 100, nylosAlive);
-		//panel.addNyloWave(wave);
-		//panel.addPlot(wave);
-		 */
-
 		if (!inNyloRegion())
 			return;
-
-		if (bossSpawnTime != -1)
-		{
-
-		}
 
 		if (ticksSinceLastWave % 4 == 0)
 		{
@@ -247,7 +212,7 @@ public class NyloStatsPlugin extends Plugin
 			case NpcID.NYLOCAS_VASILIAS_10786:
 			case NpcID.NYLOCAS_VASILIAS_10807:
 				bossSpawnTime = client.getTickCount() - nyloStartTick;
-				eventBus.post(new BossSpawnedEvent(npc));
+				eventBus.post(new BossSpawnedEvent());
 				break;
 		}
 
@@ -334,12 +299,9 @@ public class NyloStatsPlugin extends Plugin
 						"</col>] [<col=00FF0A>" + bossRotation[2] + "</col>] [<col=2536CA>" + bossRotation[1] + "</col>]", "");
 			}
 			int idleTicks = idleTicksHandler.getIdleTicks();
-			ArrayList<Integer> nylosAlive = nyloPlotHandler.getNylosAlive();
-
-			NyloWave wave = new NyloWave(bossSpawnTime,roomTime - bossSpawnTime, splits, bossRotation,
-					dmgDealt, dmgTaken, idleTicks, (ArrayList<Integer>) nylosAlive.clone());
+			NyloWave wave = new NyloWave(bossSpawnTime,roomTime - bossSpawnTime, splits, bossRotation, dmgDealt, dmgTaken, idleTicks);
 			panel.addNyloWave(wave);
-			//reset();
+			reset();
 		}
 	}
 
@@ -481,6 +443,5 @@ public class NyloStatsPlugin extends Plugin
 		bossSpawnTime = -1;
 		roomTime = -1;
 		idleTicksHandler.reset();
-		nyloPlotHandler.reset();
 	}
 }
