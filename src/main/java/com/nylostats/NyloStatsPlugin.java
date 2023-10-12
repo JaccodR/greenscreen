@@ -201,6 +201,17 @@ public class NyloStatsPlugin extends Plugin
 				}
 			}
 		}
+		else if (Objects.equals(npc.getName(), "Nylocas Vasilias"))
+		{
+			if (config.onBossSpawn())
+			{
+				if (config.showStalls() != StallDisplays.OFF)
+					printStalls();
+				if (config.showTotalStalls())
+					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
+				stalls = 0;
+			}
+		}
 	}
 
 	@Subscribe
@@ -217,14 +228,14 @@ public class NyloStatsPlugin extends Plugin
 				reset();
 				return;
 			}
-			if (config.showStalls() != StallDisplays.OFF)
+			if (!config.onBossSpawn())
 			{
-				printStalls();
+				if (config.showStalls() != StallDisplays.OFF)
+					printStalls();
+				if (config.showTotalStalls())
+					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
 			}
-			if (config.showTotalStalls())
-			{
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Total stalled waves: <col=EF1020>" + stalls + "</col>", "");
-			}
+
 			if (config.showSplits())
 			{
 				printSplits();
@@ -247,7 +258,11 @@ public class NyloStatsPlugin extends Plugin
 		int tobVar = client.getVarbitValue(Varbits.THEATRE_OF_BLOOD);
 		boolean inTob = tobVar == 2 || tobVar == 3;
 		if (!inTob)
+		{
+			if (stalls > 0)
+				printStalls();
 			reset();
+		}
 	}
 
 	@Subscribe

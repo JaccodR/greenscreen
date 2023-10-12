@@ -47,4 +47,12 @@ public interface NyloStatsConfig extends Config
             description = "Shows the amount of phases the nylocas boss had."
     )
     default boolean showBossRotation() { return true; }
+
+    @ConfigItem(
+            position = 4,
+            keyName = "onBossSpawn",
+            name = "Show on boss spawn",
+            description = "Show the stalls when the boss spawns."
+    )
+    default boolean onBossSpawn() { return true; }
 }
