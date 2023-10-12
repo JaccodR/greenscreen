@@ -3,17 +3,32 @@ package com.nylostats;
 import com.google.inject.Provides;
 
 import javax.inject.Inject;
+import javax.swing.*;
+
+import com.nylostats.data.NyloWave;
+import com.nylostats.events.BossSpawnedEvent;
+import com.nylostats.events.NyloStartedEvent;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 import org.apache.commons.lang3.ArrayUtils;
 
+import java.awt.image.BufferedImage;
+import java.lang.reflect.Array;
+import java.nio.Buffer;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -27,14 +42,30 @@ public class NyloStatsPlugin extends Plugin
 	private Client client;
 	@Inject
 	private NyloStatsConfig config;
+	@Inject
+	private ClientToolbar clientToolbar;
+	@Inject
+	private IdleTicksHandler idleTicksHandler;
+	@Inject
+	private NyloPlotHandler nyloPlotHandler;
+	@Inject
+	private EventBus eventBus;
+	@Getter(AccessLevel.PACKAGE)
+	private NyloStatsPanel panel;
+	private NavigationButton navButton;
 	private int currWave;
 	private int stalls;
 	private int ticksSinceLastWave;
 	private int[] splits;
 	private int[] preCapSplits;
 	private int[] bossRotation;
+	private int dmgDealt;
+	private int dmgTaken;
 	private boolean isHmt;
 	private int currCap;
+	private int nyloStartTick;
+	private int bossSpawnTime;
+	private int roomTime;
 	private ArrayList<String> stallMessagesAll;
 	private ArrayList<String> stallMessagesCollapsed;
 	private static final Pattern NYLO_COMPLETE = Pattern.compile("Wave 'The Nylocas' \\(.*\\) complete!");
@@ -85,6 +116,16 @@ public class NyloStatsPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
+		panel = injector.getInstance(NyloStatsPanel.class);
+		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/util/icon.png");
+		navButton = NavigationButton.builder()
+				.tooltip("Nylo wave nylostats")
+				.priority(6)
+				.icon(icon)
+				.panel(panel)
+				.build();
+		clientToolbar.addNavigation(navButton);
+
 		currWave = 0;
 		ticksSinceLastWave = 0;
 		stalls = 0;
@@ -96,19 +137,60 @@ public class NyloStatsPlugin extends Plugin
 		preCapSplits = new int[3];
 		bossRotation = new int[3];
 		bossRotation[0] = 1;
+		dmgDealt = 0;
+		dmgTaken = 0;
+		nyloStartTick = -1;
+		bossSpawnTime = -1;
+		roomTime = -1;
+
+		eventBus.register(idleTicksHandler);
+		eventBus.register(nyloPlotHandler);
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
+		clientToolbar.removeNavigation(navButton);
 		reset();
+		eventBus.unregister(idleTicksHandler);
+		eventBus.unregister(nyloPlotHandler);
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
+		/*
+		final ArrayList<Integer> nylosAlive = new ArrayList<>();
+		nylosAlive.add(0);
+		nylosAlive.add(4);
+		nylosAlive.add(6);
+		nylosAlive.add(15);
+		nylosAlive.add(24);
+		nylosAlive.add(22);
+		nylosAlive.add(20);
+		nylosAlive.add(18);
+		nylosAlive.add(22);
+		nylosAlive.add(27);
+		nylosAlive.add(27);
+		nylosAlive.add(24);
+		nylosAlive.add(27);
+		nylosAlive.add(20);
+		nylosAlive.add(18);
+		nylosAlive.add(15);
+		nylosAlive.add(20);
+		nylosAlive.add(24);
+		NyloWave wave = new NyloWave(300, 100, splits, bossRotation, dmgDealt, dmgTaken, 100, nylosAlive);
+		//panel.addNyloWave(wave);
+		//panel.addPlot(wave);
+		 */
+
 		if (!inNyloRegion())
 			return;
+
+		if (bossSpawnTime != -1)
+		{
+
+		}
 
 		if (ticksSinceLastWave % 4 == 0)
 		{
@@ -153,12 +235,28 @@ public class NyloStatsPlugin extends Plugin
 	public void onNpcSpawned(NpcSpawned npcSpawned)
 	{
 		NPC npc = npcSpawned.getNpc();
+		switch (npc.getId())
+		{
+			case NullNpcID.NULL_8358:
+			case NullNpcID.NULL_10790:
+			case NullNpcID.NULL_10811:
+				nyloStartTick = client.getTickCount();
+				eventBus.post(new NyloStartedEvent());
+				break;
+			case NpcID.NYLOCAS_VASILIAS:
+			case NpcID.NYLOCAS_VASILIAS_10786:
+			case NpcID.NYLOCAS_VASILIAS_10807:
+				bossSpawnTime = client.getTickCount() - nyloStartTick;
+				eventBus.post(new BossSpawnedEvent(npc));
+				break;
+		}
+
 		if (Objects.equals(npc.getName(), "Nylocas Ischyros") || Objects.equals(npc.getName(), "Nylocas Toxobolos")
 				|| Objects.equals(npc.getName(), "Nylocas Hagios"))
 		{
 			WorldPoint location = WorldPoint.fromLocalInstance(client, npc.getLocalLocation());
 			Point point = new Point(location.getRegionX(), location.getRegionY());
-			Nylospawns nylospawn = Nylospawns.getLookup().get(point);
+			NyloSpawn nylospawn = NyloSpawn.getLookup().get(point);
 
 
 			if (nylospawn == null)
@@ -212,6 +310,7 @@ public class NyloStatsPlugin extends Plugin
 		String msg = Text.removeTags(event.getMessage());
 		if (NYLO_COMPLETE.matcher(msg).find())
 		{
+			roomTime = client.getTickCount() - nyloStartTick;
 			if (currWave != 31)
 			{
 				reset();
@@ -234,7 +333,13 @@ public class NyloStatsPlugin extends Plugin
 				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Boss rotation: [<col=EF1020>" + bossRotation[0] +
 						"</col>] [<col=00FF0A>" + bossRotation[2] + "</col>] [<col=2536CA>" + bossRotation[1] + "</col>]", "");
 			}
-			reset();
+			int idleTicks = idleTicksHandler.getIdleTicks();
+			ArrayList<Integer> nylosAlive = nyloPlotHandler.getNylosAlive();
+
+			NyloWave wave = new NyloWave(bossSpawnTime,roomTime - bossSpawnTime, splits, bossRotation,
+					dmgDealt, dmgTaken, idleTicks, (ArrayList<Integer>) nylosAlive.clone());
+			panel.addNyloWave(wave);
+			//reset();
 		}
 	}
 
@@ -275,7 +380,24 @@ public class NyloStatsPlugin extends Plugin
 		}
 	}
 
-	private boolean inNyloRegion()
+	@Subscribe
+	public void onHitsplatApplied(HitsplatApplied event)
+	{
+		if (!inNyloRegion())
+			return;
+
+		Actor target = event.getActor();
+		Hitsplat hitsplat = event.getHitsplat();
+		if (!hitsplat.isMine())
+			return;
+
+		if (target == this.client.getLocalPlayer())
+			dmgTaken += hitsplat.getAmount();
+		else if (target instanceof NPC)
+			dmgDealt += hitsplat.getAmount();
+	}
+
+	public boolean inNyloRegion()
 	{
 		return ArrayUtils.contains(client.getMapRegions(), NYLOCAS_REGIONID);
 	}
@@ -288,13 +410,15 @@ public class NyloStatsPlugin extends Plugin
 
 	private void printSplits()
 	{
+		if (config.showSplitsCap())
+		{
+			String msgCap = "Pre cap splits: [<col=EF1020>" + preCapSplits[0] +
+					"</col>] [<col=00FF0A>" + preCapSplits[1] + "</col>] [<col=2536CA>" + preCapSplits[2] + "</col>]";
+			msgCap +=" Post cap splits: [<col=EF1020>" + (splits[0] - preCapSplits[0]) +
+					"</col>] [<col=00FF0A>" + (splits[1] - preCapSplits[1]) + "</col>] [<col=2536CA>" + (splits[2] - preCapSplits[2]) + "</col>]";
 
-		String msgCap = "Pre cap splits: [<col=EF1020>" + preCapSplits[0] +
-				"</col>] [<col=00FF0A>" + preCapSplits[1] + "</col>] [<col=2536CA>" + preCapSplits[2] + "</col>]";
-		msgCap +=" Post cap splits: [<col=EF1020>" + (splits[0] - preCapSplits[0]) +
-				"</col>] [<col=00FF0A>" + (splits[1] - preCapSplits[1]) + "</col>] [<col=2536CA>" + (splits[2] - preCapSplits[2]) + "</col>]";
-
-		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msgCap, "");
+			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msgCap, "");
+		}
 
 		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",  "Total splits: [<col=EF1020>" + splits[0] +
 		"</col>] [<col=00FF0A>" + splits[1] + "</col>] [<col=2536CA>" + splits[2] + "</col>]", "");
@@ -351,5 +475,12 @@ public class NyloStatsPlugin extends Plugin
 		preCapSplits = new int[3];
 		bossRotation = new int[3];
 		bossRotation[0] = 1;
+		dmgDealt = 0;
+		dmgTaken = 0;
+		nyloStartTick = -1;
+		bossSpawnTime = -1;
+		roomTime = -1;
+		idleTicksHandler.reset();
+		nyloPlotHandler.reset();
 	}
 }
